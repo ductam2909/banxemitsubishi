@@ -1,0 +1,70 @@
+{
+  "globalDefaults": {
+    "registrationTaxMode": "percent",
+    "registrationTaxRate": 10,
+    "registrationTaxValue": 0,
+    "registrationPlate": 140000,
+    "inspection": 90000,
+    "registrationService": 2500000,
+    "roadMaintenance": {
+      "white": 1560000,
+      "yellow": 2160000
+    },
+    "bodyInsuranceRate": {
+      "white": 1.3,
+      "yellow": 1.7
+    }
+  },
+  "defaultTnds": {
+    "5_white": 480000,
+    "5_yellow": 874000,
+    "7_white": 874000,
+    "7_yellow": 1188000
+  },
+  "categories": [
+    {
+      "name": "Attrage",
+      "seats": 5,
+      "variants": [
+        { "name": "Attrage MT", "price": 380000000, "audio": 0 },
+        { "name": "Attrage CVT", "price": 460000000, "audio": 0 }
+      ]
+    },
+    {
+      "name": "Xforce",
+      "seats": 5,
+      "variants": [
+        { "name": "XFC GLX", "price": 599000000, "audio": 0 },
+        { "name": "XFC PREMIUM (25)", "price": 619000000, "audio": 0 },
+        { "name": "XFC Ultimate (1 tone màu)", "price": 689000000, "audio": 0 },
+        { "name": "XFC Ultimate (2 tone màu)", "price": 699000000, "audio": 0 }
+      ]
+    },
+    {
+      "name": "Xpander",
+      "seats": 7,
+      "variants": [
+        { "name": "Xpander MT26", "price": 560000000, "audio": 5750000 },
+        { "name": "Xpander AT ECO", "price": 599000000, "audio": 8000000 },
+        { "name": "Xpander Pre Vin26", "price": 660000000, "audio": 16300000 },
+        { "name": "Xpander Cross", "price": 720000000, "audio": 16300000 }
+      ]
+    },
+    {
+      "name": "Triton",
+      "seats": 5,
+      "variants": [
+        { "name": "TRITON GLX 4X2 AT", "price": 655000000, "audio": 0 },
+        { "name": "TRITON GLS 4X2 AT Athelete", "price": 770000000, "audio": 0 },
+        { "name": "TRITON GLS 4X4 AT Athelete", "price": 876000000, "audio": 0 }
+      ]
+    },
+    {
+      "name": "Destinator",
+      "seats": 7,
+      "variants": [
+        { "name": "Destinator", "price": 850000000, "audio": 0 }
+      ]
+    }
+  ]
+}
