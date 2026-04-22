@@ -3,14 +3,14 @@
 
 .app-wrapper {
   min-height: 100vh;
-  background: #0a0e1a;
+  background: #f8fafc;
 }
 
 .global-nav {
   position: sticky;
   top: 0;
   z-index: 500;
-  background: rgba(10, 14, 26, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(99, 102, 241, 0.12);
 }
@@ -42,7 +42,7 @@
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 3px;
-  color: #f1f5f9;
+  color: #1e293b;
 }
 
 .nav-links {
@@ -68,7 +68,7 @@
 }
 
 .nav-link:hover {
-  color: #94a3b8;
+  color: #1e293b;
   background: rgba(99, 102, 241, 0.06);
 }
 

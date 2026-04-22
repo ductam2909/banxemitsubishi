@@ -288,7 +288,7 @@ function CustomerManager() {
                         <td className="cm-cell-name">{c.name}</td>
                         <td>{c.phone || '-'}</td>
                         <td>{new Date(c.createdAt).toLocaleDateString('vi-VN')}</td>
-                        <td className="hide-on-mobile"><div className="cm-cell-car">{c.carModel || '-'}</div></td>
+                        <td className="hide-on-mobile"><div className="cm-cell-car">{c.carModel ? (c.carModel.includes(' - ') ? c.carModel.split(' - ')[1] : c.carModel) : '-'}</div></td>
                         <td className="hide-on-mobile">
                           {c.plateType === 'yellow' ? 
                             <span className="plate-badge yellow">Biển Vàng</span> : 
@@ -298,9 +298,9 @@ function CustomerManager() {
                         <td className="cm-cell-note hide-on-mobile">{c.note || ''}</td>
                         <td>
                           <div className="cm-actions-group">
-                            <button className="cm-action-btn view" onClick={() => handleView(c)}>Xem</button>
-                            <button className="cm-action-btn edit" onClick={() => handleEdit(c)}>Sửa</button>
-                            <button className="cm-action-btn del" onClick={() => setDeleteModal({ isOpen: true, id: c.id, name: c.name })}>Xoá</button>
+                            <button className="cm-action-btn view" title="Xem" onClick={() => handleView(c)}>👁️</button>
+                            <button className="cm-action-btn edit" title="Sửa" onClick={() => handleEdit(c)}>✏️</button>
+                            <button className="cm-action-btn del" title="Xoá" onClick={() => setDeleteModal({ isOpen: true, id: c.id, name: c.name })}>🗑️</button>
                           </div>
                         </td>
                       </tr>
@@ -475,7 +475,7 @@ function CustomerManager() {
               </div>
               <div className="detail-item">
                 <span className="detail-label">Dòng xe:</span>
-                <span className="detail-value">{viewModal.data.carModel ? <span className="cm-cell-car">{viewModal.data.carModel}</span> : 'Chưa cập nhật'}</span>
+                <span className="detail-value">{viewModal.data.carModel ? <span className="cm-cell-car">{viewModal.data.carModel.includes(' - ') ? viewModal.data.carModel.split(' - ')[1] : viewModal.data.carModel}</span> : 'Chưa cập nhật'}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Loại biển:</span>

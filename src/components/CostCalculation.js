@@ -42,6 +42,14 @@ function CostCalculation() {
   const [toast, setToast] = useState(null);
   const toastTimeoutRef = useRef(null);
 
+  // AI State
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [aiCustomerName, setAiCustomerName] = useState('');
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiMessage, setAiMessage] = useState('');
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -112,6 +120,88 @@ function CostCalculation() {
         console.error("Lỗi fallback copy:", fallbackErr);
         showToast("Trình duyệt cấm copy tự động. Vui lòng chọn 'Tải xuống Ảnh' thay thế!", "error");
       }
+    }
+  };
+
+  const handleGenerateAI = async () => {
+    setIsGeneratingAI(true);
+    setAiMessage('');
+    
+    try {
+      const vName = variant?.name;
+      const rPrice = formatCurrency(calculations?.retailPrice);
+      const total = formatCurrency(accessoriesCost > 0 ? calculations?.finalPriceWithAccessories : calculations?.finalPrice);
+      const km = formatCurrency(discountMMV + discountDealer);
+      
+      if (!geminiKey) {
+        // Fallback Simulated AI
+        await new Promise(r => setTimeout(r, 1200));
+        let simulatedMessage = `Dạ chào ${aiCustomerName || 'anh/chị'}, em là chuyên viên tư vấn bên Mitsubishi Savico Quảng Nam ạ. 😊\n\n`;
+        
+        if (aiPrompt.trim() !== '') {
+          simulatedMessage += `Dạ bộ phận AI hiện đang chạy ở chế độ Offline (chưa có kết nối API Key) nên em xin gửi trước form báo giá tiêu chuẩn. Để AI có thể phân tích đoạn chat "${aiPrompt.substring(0, 30)}..." của anh/chị, phiền anh/chị nhờ bộ phận kĩ thuật cấu hình API Key nhé!\n\n`;
+        }
+
+        simulatedMessage += `Gửi ${aiCustomerName || 'anh/chị'} tham khảo chi tiết báo giá lăn bánh của dòng xe 🚗 *${vName}* ${color ? `(màu ${color})` : ''} đang vô cùng hot bên em nhé:\n\n`;
+        simulatedMessage += `💵 Giá niêm yết: ${rPrice} VNĐ\n💰 Tổng chi phí lăn bánh (đã gồm thuế phí & bảo hiểm thân vỏ): ${total} VNĐ\n🎁 Khuyến mãi cực khủng: Giảm tiền mặt ngay ${km} VNĐ (đã trừ vào giá lăn bánh ở trên rồi ạ).\n${accessoriesCost > 0 ? `🔧 Tặng / Lắp đặt kèm phụ kiện: ${accessories} trị giá ${formatCurrency(accessoriesCost)} VNĐ.\n` : ''}\nXe bên em hiện đang có sẵn giao ngay, hỗ trợ trả góp lãi suất cực ưu đãi. \n${aiCustomerName || 'Anh/chị'} sắp xếp rảnh chiều nay hay sáng mai qua showroom bên em xem xe thực tế và lái thử luôn ạ? 📞 Cần hỗ trợ gì thêm ${aiCustomerName || 'anh/chị'} cứ nhắn em nhé!`;
+        setAiMessage(simulatedMessage);
+        setIsGeneratingAI(false);
+        return;
+      }
+      
+      if (!geminiKey.startsWith('sk-or-')) {
+        // Old Gemini key or invalid format — clear and warn
+        localStorage.removeItem('gemini_api_key');
+        setGeminiKey('');
+        throw new Error('API Key không đúng định dạng OpenRouter. Vui lòng vào ⚙️ Cài đặt và tạo key mới tại openrouter.ai/keys (bắt đầu bằng sk-or-...)');
+      }
+
+      localStorage.setItem('gemini_api_key', geminiKey);
+      
+      const promptText = `Bạn là một chuyên viên tư vấn bán xe ô tô Mitsubishi xuất sắc. 
+Hãy viết một tin nhắn Zalo thật chuyên nghiệp, thân thiện và thuyết phục để gửi cho khách hàng${aiCustomerName ? ` tên là ${aiCustomerName}` : ''}.
+Mục đích: Gửi báo giá chi tiết lăn bánh xe.
+Thông tin chi tiết xe:
+- Dòng xe: ${vName} ${color ? `(Màu sắc: ${color})` : ''}
+- Giá niêm yết: ${rPrice} VNĐ
+- Tổng giá lăn bánh (đã bao gồm các loại phí và bảo hiểm): ${total} VNĐ
+- Khuyến mãi tiền mặt đang áp dụng: ${km} VNĐ (Đã trừ trực tiếp vào giá lăn bánh)
+${accessoriesCost > 0 ? `- Có tặng kèm/lắp thêm phụ kiện: ${accessories} (Trị giá ${formatCurrency(accessoriesCost)} VNĐ)` : ''}
+${aiPrompt.trim() ? `\nYêu cầu / Câu hỏi từ khách: ${aiPrompt}` : ''}
+
+Yêu cầu:
+- Trình bày dạng tin nhắn Zalo, có sử dụng các emoji phù hợp (🚗, 🎁, 💰, 📞...).
+- Nội dung ngắn gọn, súc tích, dễ đọc, khoảng cách dòng hợp lý.
+- Kêu gọi hành động rõ ràng (VD: Mời anh/chị qua showroom xem xe, lái thử, hoặc chốt cọc để nhận thêm ưu đãi).
+- Không được bịa đặt các thông tin không có.
+- Trả lời bằng tiếng Việt.`;
+
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${geminiKey}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Mitsubishi Savico BaoGia'
+        },
+        body: JSON.stringify({
+          model: 'meta-llama/llama-3.3-70b-instruct:free',
+          messages: [{ role: 'user', content: promptText }]
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        const msg = data.error.message || JSON.stringify(data.error);
+        throw new Error(msg);
+      }
+      
+      const msg = data.choices[0].message.content;
+      setAiMessage(msg);
+    } catch (err) {
+      console.error(err);
+      showToast("Lỗi tạo tin nhắn: " + err.message, "error");
+    } finally {
+      setIsGeneratingAI(false);
     }
   };
 
@@ -622,13 +712,94 @@ function CostCalculation() {
               </div> */}
             </div>
             <div className="quote-actions-row">
+              <button className="quote-zalo-btn" onClick={() => setShowAIModal(true)} style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
+                <span className="icon">🤖</span> Viết tin AI
+              </button>
               <button className="quote-export-btn" onClick={handleExportImage}>
                 <span className="icon">⬇️</span> Tải xuống Ảnh
               </button>
               <button className="quote-zalo-btn" onClick={handleCopyToClipboard}>
-                <span className="icon">📋</span> Copy gửi Zalo
+                <span className="icon">📋</span> Copy Ảnh Zalo
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI GENERATOR MODAL */}
+      {showAIModal && calculations && (
+        <div className="quote-modal-overlay" onClick={() => setShowAIModal(false)}>
+          <div className="quote-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <button className="quote-close-btn" onClick={() => setShowAIModal(false)}>×</button>
+            <h2 style={{marginTop: 0, color: 'var(--text-primary)'}}>🤖 Soạn tin nhắn Zalo (AI)</h2>
+            <p style={{fontSize: '13px', color: 'var(--text-secondary)'}}>Sử dụng AI để tự động viết lời chào gửi báo giá cho khách.</p>
+            
+            <div className="input-group" style={{marginBottom: '15px'}}>
+              <label>Tin nhắn của khách / Yêu cầu thêm (để AI trả lời cho phù hợp)</label>
+              <textarea 
+                value={aiPrompt} 
+                onChange={e => setAiPrompt(e.target.value)} 
+                placeholder="VD: Khách vừa nhắn: 'Chị muốn mua Xpander nhưng tài chính chỉ tầm 600 triệu, có ngân hàng hỗ trợ không em?'" 
+                rows="3"
+                style={{width: '100%', padding: '10px 14px', background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', resize: 'vertical', fontFamily: 'inherit', fontSize: '13px'}}
+              />
+            </div>
+            
+            <div className="input-group" style={{marginBottom: '15px'}}>
+              <label>Tên khách hàng (Không bắt buộc)</label>
+              <input type="text" value={aiCustomerName} onChange={e => setAiCustomerName(e.target.value)} placeholder="VD: Anh Minh..." />
+            </div>
+
+            <details style={{marginBottom: '15px', background: 'rgba(99,102,241,0.05)', borderRadius: '8px', padding: '10px 14px', border: '1px solid var(--border-color)'}}>
+              <summary style={{cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)'}}>
+                ⚙️ Cài đặt Gemini API Key (để nhận câu trả lời AI thật)
+              </summary>
+              <div style={{marginTop: '10px'}}>
+                <p style={{fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 4px'}}>
+                  Dùng <strong>OpenRouter</strong> (miễn phí, không cần billing):
+                </p>
+                <ol style={{fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 8px', paddingLeft: '18px', lineHeight: '1.7'}}>
+                  <li>Vào <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" style={{color: 'var(--accent-1)'}}>openrouter.ai/keys</a> → đăng nhập Google</li>
+                  <li>Bấm <strong>Create Key</strong> → Copy key (bắt đầu bằng <code>sk-or-...</code>)</li>
+                  <li>Dán vào ô bên dưới</li>
+                </ol>
+                <input 
+                  type="password" 
+                  value={geminiKey} 
+                  onChange={e => { setGeminiKey(e.target.value); if (e.target.value) localStorage.setItem('gemini_api_key', e.target.value); }}
+                  placeholder="sk-or-v1-..."
+                  style={{width: '100%', padding: '8px 12px', background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '13px', boxSizing: 'border-box'}}
+                />
+                {geminiKey && <p style={{fontSize: '11px', color: '#10b981', marginTop: '6px', marginBottom: 0}}>✅ Đã cấu hình — AI Llama 3.3 70B sẵn sàng</p>}
+                {!geminiKey && <p style={{fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', marginBottom: 0}}>⚠️ Chưa có key — đang dùng mẫu mô phỏng</p>}
+              </div>
+            </details>
+
+            <button 
+              className="quote-btn" 
+              style={{width: '100%', marginBottom: '15px'}} 
+              onClick={handleGenerateAI}
+              disabled={isGeneratingAI}
+            >
+              {isGeneratingAI ? '⏳ Đang soạn...' : '✨ Tạo tin nhắn AI'}
+            </button>
+
+            {aiMessage && (
+              <div className="ai-message-box" style={{background: 'var(--bg-secondary)', padding: '15px', borderRadius: '8px', border: '1px solid var(--border-color)', position: 'relative'}}>
+                <textarea 
+                  value={aiMessage} 
+                  onChange={e => setAiMessage(e.target.value)}
+                  style={{width: '100%', minHeight: '200px', background: 'transparent', color: 'var(--text-primary)', border: 'none', resize: 'vertical', fontSize: '14px', lineHeight: '1.5', outline: 'none'}}
+                />
+                <button 
+                  className="quote-zalo-btn" 
+                  style={{position: 'absolute', bottom: '15px', right: '15px', padding: '6px 12px', fontSize: '12px'}}
+                  onClick={() => { navigator.clipboard.writeText(aiMessage); showToast('Đã copy tin nhắn!'); }}
+                >
+                  📋 Copy Text
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
