@@ -276,6 +276,7 @@ function CustomerManager() {
                     <th width="8%" className="hide-on-mobile">Biển số</th>
                     <th width="10%" className="hide-on-mobile">Tình trạng</th>
                     <th width="20%" className="hide-on-mobile">Ghi chú</th>
+                    <th width="8%">Zalo</th>
                     <th width="15%">Hành động</th>
                   </tr>
                 </thead>
@@ -296,6 +297,31 @@ function CustomerManager() {
                         </td>
                         <td className="hide-on-mobile">{getStatusDisplay(c.status)}</td>
                         <td className="cm-cell-note hide-on-mobile">{c.note || ''}</td>
+                        <td style={{textAlign: 'center'}}>
+                          {c.phone ? (
+                            <a
+                              href={`https://zalo.me/${c.phone.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={`Nhắn tin Zalo: ${c.phone}`}
+                              style={{display: 'inline-block', cursor: 'pointer', transition: 'transform 0.2s'}}
+                              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.15)'}
+                              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const phone = c.phone.replace(/[^0-9]/g, '');
+                                // Thử mở Zalo app trực tiếp qua protocol
+                                window.location.href = `zalo://conversation?phone=${phone}`;
+                                // Fallback: nếu app không mở sau 1s thì chuyển sang web
+                                setTimeout(() => {
+                                  window.open(`https://zalo.me/${phone}`, '_blank');
+                                }, 1000);
+                              }}
+                            >
+                              <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Icon_of_Zalo.svg" alt="Zalo" width="28" height="28" style={{verticalAlign: 'middle'}}/>
+                            </a>
+                          ) : '-'}
+                        </td>
                         <td>
                           <div className="cm-actions-group">
                             <button className="cm-action-btn view" title="Xem" onClick={() => handleView(c)}>👁️</button>
