@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { toPng, toBlob } from 'html-to-image';
 import { useVehicleData } from '../context/VehicleDataContext';
 import './CostCalculation.css';
@@ -12,6 +12,51 @@ const parseCurrency = (str) => {
   if (!str) return 0;
   return parseInt(String(str).replace(/[,.]/g, ''), 10) || 0;
 };
+
+// Component input tiền tệ: giữ nguyên text thô khi đang gõ, chỉ format khi blur
+function CurrencyInput({ value, onChange, placeholder, disabled, className, style, onClick }) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [rawText, setRawText] = useState('');
+
+  const handleFocus = useCallback((e) => {
+    setIsFocused(true);
+    // Khi focus, hiển thị số thuần (không dấu chấm) để dễ chỉnh sửa
+    const numVal = parseCurrency(e.target.value);
+    setRawText(numVal > 0 ? String(numVal) : '');
+  }, []);
+
+  const handleChange = useCallback((e) => {
+    // Chỉ cho phép nhập số
+    const cleaned = e.target.value.replace(/[^0-9]/g, '');
+    setRawText(cleaned);
+    onChange(parseCurrency(cleaned));
+  }, [onChange]);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+  }, []);
+
+  // Khi đang focus: hiện text thô (số thuần), khi blur: hiện đã format
+  const displayValue = isFocused
+    ? rawText
+    : (value ? formatCurrency(value) : '');
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      className={className}
+      style={style}
+      value={displayValue}
+      placeholder={placeholder || '0'}
+      disabled={disabled}
+      onClick={onClick}
+      onFocus={handleFocus}
+      onChange={handleChange}
+      onBlur={handleBlur}
+    />
+  );
+}
 
 function CostCalculation() {
   const { vehicleData } = useVehicleData();
@@ -395,7 +440,7 @@ Yêu cầu:
             </div>
             <div className="input-group">
               <label>💰 Chi Phí Phụ Kiện</label>
-              <input type="text" placeholder="0" value={accessoriesCost ? formatCurrency(accessoriesCost) : ''} onChange={(e) => setAccessoriesCost(parseCurrency(e.target.value))} />
+              <CurrencyInput value={accessoriesCost} onChange={setAccessoriesCost} placeholder="0" />
             </div>
           </div>
         </div>
@@ -449,14 +494,13 @@ Yêu cầu:
                           <input type="radio" name="regTaxMode" checked={regTaxMode === 'manual'} onChange={() => { setRegTaxModeOverride('manual'); }} />
                           <span className="reg-tax-radio"></span>
                           <span className="reg-tax-label">Nhập giá:</span>
-                          <input
-                            type="text"
+                          <CurrencyInput
                             className={`reg-tax-input ${regTaxMode === 'manual' ? 'active' : ''}`}
-                            value={regTaxMode === 'manual' ? (regTaxManual ? formatCurrency(regTaxManual) : '') : ''}
+                            value={regTaxMode === 'manual' ? regTaxManual : 0}
                             placeholder={formatCurrency(calculations.registrationTaxAuto)}
                             disabled={regTaxMode !== 'manual'}
                             onClick={(e) => e.stopPropagation()}
-                            onChange={(e) => setRegTaxManualOverride(parseCurrency(e.target.value))}
+                            onChange={setRegTaxManualOverride}
                           />
                         </label>
                       </div>
@@ -470,7 +514,7 @@ Yêu cầu:
                       </div>
                     </td>
                     <td className="amount discount-input-cell">
-                      <input type="text" className="fee-input" value={feeOverrides.plate !== null ? formatCurrency(feeOverrides.plate) : formatCurrency(calculations.registrationPlate)} onChange={(e) => handleFeeOverride('plate', e.target.value)} disabled={!feeToggles.plate} />
+                      <CurrencyInput className="fee-input" value={feeOverrides.plate !== null ? feeOverrides.plate : calculations.registrationPlate} onChange={(v) => setFeeOverrides(p => ({ ...p, plate: v > 0 ? v : null }))} disabled={!feeToggles.plate} />
                     </td>
                   </tr>
                   <tr>
@@ -481,7 +525,7 @@ Yêu cầu:
                       </div>
                     </td>
                     <td className="amount discount-input-cell">
-                      <input type="text" className="fee-input" value={feeOverrides.inspection !== null ? formatCurrency(feeOverrides.inspection) : formatCurrency(calculations.inspection)} onChange={(e) => handleFeeOverride('inspection', e.target.value)} disabled={!feeToggles.inspection} />
+                      <CurrencyInput className="fee-input" value={feeOverrides.inspection !== null ? feeOverrides.inspection : calculations.inspection} onChange={(v) => setFeeOverrides(p => ({ ...p, inspection: v > 0 ? v : null }))} disabled={!feeToggles.inspection} />
                     </td>
                   </tr>
                   <tr>
@@ -493,7 +537,7 @@ Yêu cầu:
                       </div>
                     </td>
                     <td className="amount discount-input-cell">
-                      <input type="text" className="fee-input" value={feeOverrides.road !== null ? formatCurrency(feeOverrides.road) : formatCurrency(calculations.roadMaintenance)} onChange={(e) => handleFeeOverride('road', e.target.value)} disabled={!feeToggles.road} />
+                      <CurrencyInput className="fee-input" value={feeOverrides.road !== null ? feeOverrides.road : calculations.roadMaintenance} onChange={(v) => setFeeOverrides(p => ({ ...p, road: v > 0 ? v : null }))} disabled={!feeToggles.road} />
                     </td>
                   </tr>
                   <tr>
@@ -504,7 +548,7 @@ Yêu cầu:
                       </div>
                     </td>
                     <td className="amount discount-input-cell">
-                      <input type="text" className="fee-input" value={feeOverrides.service !== null ? formatCurrency(feeOverrides.service) : formatCurrency(calculations.registrationService)} onChange={(e) => handleFeeOverride('service', e.target.value)} disabled={!feeToggles.service} />
+                      <CurrencyInput className="fee-input" value={feeOverrides.service !== null ? feeOverrides.service : calculations.registrationService} onChange={(v) => setFeeOverrides(p => ({ ...p, service: v > 0 ? v : null }))} disabled={!feeToggles.service} />
                     </td>
                   </tr>
                   <tr>
@@ -517,7 +561,7 @@ Yêu cầu:
                       </div>
                     </td>
                     <td className="amount discount-input-cell">
-                      <input type="text" className="fee-input" value={feeOverrides.tnds !== null ? formatCurrency(feeOverrides.tnds) : formatCurrency(calculations.tndsInsurance)} onChange={(e) => handleFeeOverride('tnds', e.target.value)} disabled={!feeToggles.tnds} />
+                      <CurrencyInput className="fee-input" value={feeOverrides.tnds !== null ? feeOverrides.tnds : calculations.tndsInsurance} onChange={(v) => setFeeOverrides(p => ({ ...p, tnds: v > 0 ? v : null }))} disabled={!feeToggles.tnds} />
                     </td>
                   </tr>
                   <tr>
@@ -538,7 +582,7 @@ Yêu cầu:
                       )}
                     </td>
                     <td className="amount discount-input-cell">
-                      <input type="text" className="fee-input" value={feeOverrides.body !== null ? formatCurrency(feeOverrides.body) : formatCurrency(calculations.bodyInsurance)} onChange={(e) => handleFeeOverride('body', e.target.value)} disabled={!feeToggles.body} />
+                      <CurrencyInput className="fee-input" value={feeOverrides.body !== null ? feeOverrides.body : calculations.bodyInsurance} onChange={(v) => setFeeOverrides(p => ({ ...p, body: v > 0 ? v : null }))} disabled={!feeToggles.body} />
                     </td>
                   </tr>
 
@@ -552,24 +596,22 @@ Yêu cầu:
                   <tr className="row-discount">
                     <td><div className="item-label"><span className="item-icon">🎁</span>Khuyến mãi MMV</div></td>
                     <td className="amount discount-input-cell">
-                      <input
-                        type="text"
+                      <CurrencyInput
                         className="discount-input"
                         placeholder="0"
-                        value={discountMMV ? formatCurrency(discountMMV) : ''}
-                        onChange={(e) => setDiscountMMVOverride(parseCurrency(e.target.value))}
+                        value={discountMMV}
+                        onChange={setDiscountMMVOverride}
                       />
                     </td>
                   </tr>
                   <tr className="row-discount">
                     <td><div className="item-label"><span className="item-icon">🏷️</span>Khuyến mãi đại lý</div></td>
                     <td className="amount discount-input-cell">
-                      <input
-                        type="text"
+                      <CurrencyInput
                         className="discount-input"
                         placeholder="0"
-                        value={discountDealer ? formatCurrency(discountDealer) : ''}
-                        onChange={(e) => setDiscountDealerOverride(parseCurrency(e.target.value))}
+                        value={discountDealer}
+                        onChange={setDiscountDealerOverride}
                       />
                     </td>
                   </tr>
